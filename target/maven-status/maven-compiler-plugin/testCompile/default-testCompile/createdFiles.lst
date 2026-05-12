@@ -1,0 +1,3 @@
+com\example\msbaseprj\api\configuration\WebSecurityConfigTest.class
+com\example\msbaseprj\api\exception\GlobalExceptionHandlerTest.class
+com\example\msbaseprj\api\hello\controller\HelloControllerTest.class
