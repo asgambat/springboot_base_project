@@ -9,18 +9,16 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
 public class TraceIdPropagationInterceptor implements ClientHttpRequestInterceptor {
-    private static final String TRACE_ID_HEADER = "X-Trace-Id";
+	private static final String TRACE_ID_HEADER = "X-Trace-Id";
 
-    @Override
-    public ClientHttpResponse intercept(
-            HttpRequest request,
-            byte[] body,
-            ClientHttpRequestExecution execution) throws IOException {
-        var traceId = MDC.get("traceId");
-        if (traceId != null && !traceId.isEmpty()) 
-            request.getHeaders().add(TRACE_ID_HEADER, traceId);
-            
-        return execution.execute(request, body);
-    }
+	@Override
+	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+			throws IOException {
+		var traceId = MDC.get("traceId");
+		if (traceId != null && !traceId.isEmpty())
+			request.getHeaders().add(TRACE_ID_HEADER, traceId);
+
+		return execution.execute(request, body);
+	}
 
 }

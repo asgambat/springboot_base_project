@@ -1,56 +1,120 @@
+#JAVA_OPTS=-Dnetworkaddress.cache.ttl=60
+
 spring:
+  profiles:
+    default: demo
   application:
     name: ms-base-prj
   devtools:
     restart:
       # DevTools: restart automatico al cambio del codice
-      enabled: true
+      enabled: false
       poll-interval: 2s
       quiet-period: 1s
   cache:
+    type: caffeine
     cache-names: products
     caffeine:
-      spec: maximumSize=1000,expireAfterWrite=5m
+      spec: recordStats,maximumSize=1000,expireAfterWrite=5m
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    
+    hikari:
+      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:20}
+      minimum-idle: ${HIKARI_MINIMUM_IDLE:5}
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:3000}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:1750000}
+      pool-name: ${HIKARI_POOL_NAME:myAPP-H2}
+      leak-detection-threshold: ${HIKARI_LEAK_DETECTION_THRESHOLD:30000} # Catches forgotten connection closes
+
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:false}
+      path: /h2-console
+
+  jpa: 
+    open-in-view: false
+    show-sql: ${HIBERNATE_SHOW_SQL:false}
+    hibernate:
+      ddl-auto: validate
+      cache:
+        use_second_level_cache: false
+        use_query_cache: false
+    properties:
+      hibernate.session.events.log.LOG_QUERIES_SLOWER_THAN_MS:  ${HIBERNATE_LOG_QUERIES_SLOWER_THAN_MS:300}
+      hibernate:
+        default_batch_fetch_size: ${HIBERNATE_DEFAULT_BATCH_FETCH_SIZE:10}
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+        generate_statistics: ${HIBERNATE_GENERATE_STATISTICS:false} #enable only if you need detailed performance metrics (overhead)
+        jdbc:
+          batch_size: ${HIBERNATE_JDBC_BATCH_SIZE:50}
+          batch_versioned_data: ${HIBERNATE_JDBC_BATCH_VERSIONED_DATA:true}
+        order_inserts: ${HIBERNATE_ORDER_INSERTS:true}
+        order_updates: ${HIBERNATE_ORDER_UPDATES:true}
+      jakarta.persistence.query.timeout: ${JPA_QUERY_TIMEOUT:2000}
+  transaction:
+    default-timeout: ${TRANSACTION_DEFAULT_TIMEOUT:30} #seconds
 
 logging:
   level:
     io.micrometer.tracing: WARN
     org.springframework.boot.actuate.autoconfigure.tracing: WARN
-    com.example.msbaseprj: DEBUG
+    com.example.msbaseprj: ${LOG_LEVEL_BASE:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN} #DEBUG
+    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_ORM_JDBC_BIND:OFF} #TRACE
+    org.hibernate.stat: ${LOG_LEVEL_HIBERNATE_STAT:OFF}  # Shows query count per session
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   tomcat:
     threads:
-      max: 200          # Maximum worker threads
-      min-spare: 20     # Always keep 20 threads ready
-    connection-timeout: 5000  # Reject connections that wait longer than 5s
-    accept-count: 100   # Queue up to 100 requests before rejecting
-
+      max: ${SERVER_TOMCAT_MAX_THREADS:200}          # Maximum worker threads
+      min-spare: ${SERVER_TOMCAT_MIN_SPARE_THREADS:20}     # Always keep 20 threads ready
+    connection-timeout: ${SERVER_CONNECTION_TIMEOUT:5000}  # Reject connections that wait longer than 5s
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:100}   # Queue up to 100 requests before rejecting
 
 management:
   server:
-    port: 8081  # Separate port, not exposed to the internet
+    port: ${MANAGEMENT_SERVER_PORT:8081}  # Separate port, not exposed to the internet
   prometheus:
     metrics:
       export:
-        enabled: true  
+        enabled: ${MANAGEMENT_PROMETHEUS_METRICS_EXPORT_ENABLED:true}  
   tracing:
-    enabled: true
+    enabled: ${MANAGEMENT_TRACING_ENABLED:true}
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.2}
+    export:
+      otlp:
+        endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:}
   endpoints:
     web:
       exposure:
         include: health, httpexchanges, metrics, prometheus, trace, circuitbreakers, threaddump
   metrics:
-    enable:
+    enable: 
       jvm: true   # Heap, non-heap, GC pause time — all automatic 
+      jdbc: true       # Tracks query execution time automatically
+      hikaricp: true   # Tracks connection pool usage     
+      http: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: ${spring.application.name} # Tag all metrics with the app name
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized #always
       show-components: always    
   health:
     livenessState:
@@ -62,13 +126,13 @@ resilience4j:
   circuitbreaker:
     instances:
       orderServiceCB:
-        failureRateThreshold: 50 # Percentage of failures above which the circuit breaker should trip (50%)
-        waitDurationInOpenState: 10s # Time the circuit breaker stays in the OPEN state before switching to HALF_OPEN (10 seconds)
-        permittedNumberOfCallsInHalfOpenState: 3  # Number of permitted calls when the circuit is HALF_OPEN      
-        slidingWindowType: COUNT_BASED # Strategy to record the outcome of calls (COUNT_BASED or TIME_BASED)
-        slidingWindowSize: 10 # Number of latest calls to record (for COUNT_BASED) or time duration (for TIME_BASED)
-        minimumNumberOfCalls: 5 # Minimum number of calls required to start calculating the failure rate
-        automaticTransitionFromOpenToHalfOpenEnabled: true # Automatically transition from OPEN to HALF_OPEN after waitDurationInOpenState
+        failureRateThreshold: ${RESILIENCE4J_ORDER_SERVICE_CB_FAILURE_RATE_THRESHOLD:50} # Percentage of failures above which the circuit breaker should trip (50%)
+        waitDurationInOpenState: ${RESILIENCE4J_ORDER_SERVICE_CB_WAIT_DURATION_IN_OPEN_STATE:10s} # Time the circuit breaker stays in the OPEN state before switching to HALF_OPEN (10 seconds)
+        permittedNumberOfCallsInHalfOpenState: ${RESILIENCE4J_ORDER_SERVICE_CB_PERMITTED_NUMBER_OF_CALLS_IN_HALF_OPEN_STATE:3}  # Number of permitted calls when the circuit is HALF_OPEN      
+        slidingWindowType: ${RESILIENCE4J_ORDER_SERVICE_CB_SLIDING_WINDOW_TYPE:COUNT_BASED} # Strategy to record the outcome of calls (COUNT_BASED or TIME_BASED)
+        slidingWindowSize: ${RESILIENCE4J_ORDER_SERVICE_CB_SLIDING_WINDOW_SIZE:10} # Number of latest calls to record (for COUNT_BASED) or time duration (for TIME_BASED)
+        minimumNumberOfCalls: ${RESILIENCE4J_ORDER_SERVICE_CB_MINIMUM_NUMBER_OF_CALLS:5} # Minimum number of calls required to start calculating the failure rate
+        automaticTransitionFromOpenToHalfOpenEnabled: ${RESILIENCE4J_ORDER_SERVICE_CB_AUTOMATIC_TRANSITION_FROM_OPEN_TO_HALF_OPEN_ENABLED:true} # Automatically transition from OPEN to HALF_OPEN after waitDurationInOpenState
         # Optional: specify which exceptions should be recorded as failures
         recordExceptions:
           - org.springframework.web.client.ResourceAccessException
@@ -77,33 +141,71 @@ resilience4j:
         # Optional: specify which exceptions should *not* be recorded as failures (e.g., client errors)
         ignoreExceptions:
           - org.springframework.web.client.HttpClientErrorException$NotFound  
+      paymentGateway:
+        failureRateThreshold: ${RESILIENCE4J_PAYMENT_GATEWAY_FAILURE_RATE_THRESHOLD:50}
+        waitDurationInOpenState: ${RESILIENCE4J_PAYMENT_GATEWAY_WAIT_DURATION_IN_OPEN_STATE:10s}
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: ${RESILIENCE4J_PAYMENT_GATEWAY_SLIDING_WINDOW_SIZE:10}
+        minimumNumberOfCalls: ${RESILIENCE4J_PAYMENT_GATEWAY_MINIMUM_NUMBER_OF_CALLS:5}
+        recordExceptions:
+          - com.example.msbaseprj.api.payment.PaymentGatewayException
+          - org.springframework.web.client.ResourceAccessException
+        ignoreExceptions:
+          - jakarta.validation.ValidationException
+          - com.example.msbaseprj.api.exception.RateLimitException
+  retry:
+    instances:
+      paymentGateway:
+        maxAttempts: ${RESILIENCE4J_PAYMENT_GATEWAY_RETRY_MAX_ATTEMPTS:2}
+        waitDuration: ${RESILIENCE4J_PAYMENT_GATEWAY_RETRY_WAIT_DURATION:100ms}
+        retryExceptions:
+          - com.example.msbaseprj.api.payment.PaymentGatewayException
+          - org.springframework.web.client.ResourceAccessException
+        ignoreExceptions:
+          - jakarta.validation.ValidationException
+          - com.example.msbaseprj.api.exception.RateLimitException
+  bulkhead:
+    instances:
+      paymentGateway:
+        maxConcurrentCalls: ${RESILIENCE4J_PAYMENT_GATEWAY_BULKHEAD_MAX_CONCURRENT_CALLS:10}
+        maxWaitDuration: ${RESILIENCE4J_PAYMENT_GATEWAY_BULKHEAD_MAX_WAIT_DURATION:0}
   
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SPRING_PROFILES_ACTIVE:production}
-  traces-sample-rate: 0.2
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.2}
   enabled: ${SENTRY_ENABLED:false}
 
 app:
+  payment:
+    idempotency-processing-lease: ${PAYMENT_IDEMPOTENCY_PROCESSING_LEASE:PT5M}
+  outbox:
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:1000}
+    async-demo-enabled: ${OUTBOX_ASYNC_DEMO_ENABLED:false}
+    async-demo-interval-ms: ${OUTBOX_ASYNC_DEMO_INTERVAL_MS:30000}
+    webhook:
+      enabled: ${OUTBOX_WEBHOOK_ENABLED:false}
+      base-url: ${OUTBOX_WEBHOOK_BASE_URL:}
+
   external-api:
     api:
-      base-url: https://api.example.com
-      enableLoggingInterceptor: true
-      subscriptionKey: your-subscription-key-here
+      base-url:  ${EXTERNAL_API_BASE_URL:https://api.example.com}
+      enableLoggingInterceptor: ${EXTERNAL_API_ENABLE_LOGGING_INTERCEPTOR:false}
+      subscriptionKey: ${EXTERNAL_API_SUBSCRIPTION_KEY:your-subscription-key-here}
     retry:
-      maxImmediateAttempts: 3
-      maxBackoffMs: 2000 # in milliseconds
-      baseBackoffMs: 300
-      multiplier: 2.0
+      maxImmediateAttempts: ${EXTERNAL_API_MAX_IMMEDIATE_ATTEMPTS:3}
+      maxBackoffMs: ${EXTERNAL_API_MAX_BACKOFF_MS:2000} # in milliseconds
+      baseBackoffMs: ${EXTERNAL_API_BASE_BACKOFF_MS:300}
+      multiplier: ${EXTERNAL_API_MULTIPLIER:2.0}
     connection:      
-      responseTimeoutMillis: 10000
-      connectionTimeoutMillis: 5000
-      maxTotalConnections: 100
-      maxConnectionsPerRoute: 50
-      connectionTtlSeconds: 60
-      connectionPoolMaxWaitTimeMillis: 5000
-      evictionIdleTimeoutSeconds: 60
+      responseTimeoutMillis: ${EXTERNAL_API_RESPONSE_TIMEOUT_MILLIS:3000}
+      connectionTimeoutMillis: ${EXTERNAL_API_CONNECTION_TIMEOUT_MILLIS:500}
+      maxTotalConnections: ${EXTERNAL_API_MAX_TOTAL_CONNECTIONS:100}
+      maxConnectionsPerRoute: ${EXTERNAL_API_MAX_CONNECTIONS_PER_ROUTE:50}
+      connectionTtlSeconds: ${EXTERNAL_API_CONNECTION_TTL_SECONDS:60}
+      connectionPoolMaxWaitTimeMillis: ${EXTERNAL_API_CONNECTION_POOL_MAX_WAIT_TIME_MILLIS:2000}
+      evictionIdleTimeoutSeconds: ${EXTERNAL_API_EVICTION_IDLE_TIMEOUT_SECONDS:60}
 
   security:
-    apiKey: your-api-key-here
-    sessionTimeoutInMinutes: 60
+    apiKey: ${API_KEY:your-api-key-here}
+    sessionTimeoutInMinutes: ${SESSION_TIMEOUT_IN_MINUTES:60}

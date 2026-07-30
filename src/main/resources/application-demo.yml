@@ -1,0 +1,10 @@
+spring:
+  security:
+    user:
+      name: ${DEMO_USER:user}
+      password: ${DEMO_PASSWORD:password}
+
+app:
+  security:
+    api-key: ${API_KEY:demo-api-key}
+    session-timeout-in-minutes: ${SESSION_TIMEOUT_IN_MINUTES:60}

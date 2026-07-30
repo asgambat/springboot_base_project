@@ -1,0 +1,14 @@
+package com.example.msbaseprj.api.error;
+
+public enum ErrorType {
+
+	NETWORK_ERROR, TIMEOUT, RATE_LIMIT,
+
+	BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT,
+
+	SERVER_ERROR,
+
+	CIRCUIT_BREAKER_OPEN,
+
+	UNKNOWN
+}

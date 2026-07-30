@@ -9,13 +9,12 @@ import org.springframework.http.client.ClientHttpResponse;
 
 public class NoOpClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
 
-    @Override
-    public ClientHttpResponse intercept(
-            HttpRequest request,
-            byte[] body,
-            ClientHttpRequestExecution execution) throws IOException {
-        // No-op interceptor that simply forwards the request and response without modification
-        return execution.execute(request, body);
-    }
+	@Override
+	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+			throws IOException {
+		// No-op interceptor that simply forwards the request and response without
+		// modification
+		return execution.execute(request, body);
+	}
 
 }

@@ -10,30 +10,30 @@ import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @ConfigurationProperties(prefix = "app.security")
-@Validated 
+@Validated
 public class SecurityProperties {
 
-    @NotBlank
-    private String apiKey;
+	@NotBlank
+	private String apiKey;
 
-    @Min(1)
-    @Max(60)
-    private int sessionTimeoutInMinutes;
+	@Min(1)
+	@Max(60)
+	private int sessionTimeoutInMinutes;
 
-    public String getApiKey() {
-        return apiKey;
-    }
+	public String getApiKey() {
+		return apiKey;
+	}
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
-    public int getSessionTimeoutInMinutes() {
-        return sessionTimeoutInMinutes;
-    }
+	public int getSessionTimeoutInMinutes() {
+		return sessionTimeoutInMinutes;
+	}
 
-    public void setSessionTimeoutInMinutes(int sessionTimeoutInMinutes) {
-        this.sessionTimeoutInMinutes = sessionTimeoutInMinutes;
-    }
-    
+	public void setSessionTimeoutInMinutes(int sessionTimeoutInMinutes) {
+		this.sessionTimeoutInMinutes = sessionTimeoutInMinutes;
+	}
+
 }

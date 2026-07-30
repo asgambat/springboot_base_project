@@ -16,14 +16,14 @@ import jakarta.validation.constraints.Min;
 @RequestMapping("/api/user")
 public class UserController {
 
-    @PostMapping
-    public UserDto createUser(@Valid @RequestBody UserDto userDto) {
-        return userDto;
-    }
+	@PostMapping
+	public UserDto createUser(@Valid @RequestBody UserDto userDto) {
+		return userDto;
+	}
 
-    @GetMapping("/{id}")
-    public UserDto getUser(@PathVariable @Min(1) Long id) {
-        return new UserDto( "User" + id, "user" + id + "@example.com");
-    }
+	@GetMapping("/{id}")
+	public UserDto getUser(@PathVariable @Min(1) Long id) {
+		return new UserDto("User" + id, "user" + id + "@example.com");
+	}
 
 }

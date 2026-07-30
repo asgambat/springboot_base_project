@@ -1,0 +1,49 @@
+spring:
+  devtools:
+    restart:
+      # DevTools: restart automatico al cambio del codice
+      enabled: true
+      poll-interval: 2s
+      quiet-period: 1s
+  cache:
+    caffeine:
+      spec: recordStats,maximumSize=10,expireAfterWrite=1m
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:false}
+  jpa:
+    properties:
+      hibernate.session.events.log.LOG_QUERIES_SLOWER_THAN_MS: 300
+      hibernate:
+        format_sql: true
+        generate_statistics: true #enable only if you need detailed performance metrics (overhead)
+
+logging:
+  level:
+    io.micrometer.tracing: WARN
+    org.springframework.boot.actuate.autoconfigure.tracing: WARN
+    com.example.msbaseprj: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.stat: DEBUG  # Shows query count per session
+
+server:
+  port: 8080
+
+management:
+  server:
+    port: 8081  # Separate port, not exposed to the internet
+
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+sentry:
+  traces-sample-rate: 0.2
+
+app:
+  external-api:
+    api:
+      base-url: https://api.example.com
+      enableLoggingInterceptor: true

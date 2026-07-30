@@ -14,29 +14,23 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 public class LoggingFilter implements Filter {
-    private final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
+	private final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
 
-    @Override
-    public void doFilter(
-            ServletRequest request,
-            ServletResponse response,
-            FilterChain chain)
-            throws IOException, ServletException {
-        var httpRequest = (HttpServletRequest)request;
-        var startTime = System.currentTimeMillis();
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		var httpRequest = (HttpServletRequest) request;
+		var startTime = System.currentTimeMillis();
 
-        logger.info("Request: %s %s".formatted(httpRequest.getMethod(), httpRequest.getRequestURI()));
+		logger.info("Request: %s %s".formatted(httpRequest.getMethod(), httpRequest.getRequestURI()));
 
-        //continue
-        chain.doFilter(request, response);
+		// continue
+		chain.doFilter(request, response);
 
-        var httpResponse = (HttpServletResponse)response;
-        var duration = System.currentTimeMillis() - startTime;
-        logger.info("Response: {} {} [{}] in {}ms",
-            httpRequest.getMethod(),
-            httpRequest.getRequestURI(),
-            httpResponse.getStatus(),   
-            duration);
-    }
+		var httpResponse = (HttpServletResponse) response;
+		var duration = System.currentTimeMillis() - startTime;
+		logger.info("Response: {} {} [{}] in {}ms", httpRequest.getMethod(), httpRequest.getRequestURI(),
+				httpResponse.getStatus(), duration);
+	}
 
 }

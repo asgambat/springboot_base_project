@@ -22,73 +22,67 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class WebSecurityConfigTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+	@Autowired
+	private MockMvc mockMvc;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
-    @MockitoBean
-    private IHelloService helloService;
+	@MockitoBean
+	private IHelloService helloService;
 
-    @MockitoBean
-    private BalanceService balanceService;
+	@MockitoBean
+	private BalanceService balanceService;
 
-    @Test
-    void publicEndpointAccessibleWithoutAuthentication() throws Exception {
-        when(helloService.hello("World")).thenReturn("Hello, World!");
+	@Test
+	void publicEndpointAccessibleWithoutAuthentication() throws Exception {
+		when(helloService.hello("World")).thenReturn("Hello, World!");
 
-        mockMvc.perform(get("/api/hello"))
-                .andExpect(status().isOk());
-    }
+		mockMvc.perform(get("/api/hello")).andExpect(status().isOk());
+	}
 
-    @Test
-    void securedEndpointReturns401WithoutAuthentication() throws Exception {
-        mockMvc.perform(get("/api/secured/balance"))
-                .andExpect(status().isUnauthorized());
-    }
+	@Test
+	void securedEndpointReturns401WithoutAuthentication() throws Exception {
+		mockMvc.perform(get("/api/secured/balance")).andExpect(status().isUnauthorized());
+	}
 
-    @Test
-    void securedEndpointAccessibleWithValidCredentials() throws Exception {
-        when(balanceService.getBalance()).thenReturn("Your balance is: 500 USD");
+	@Test
+	void securedEndpointAccessibleWithValidCredentials() throws Exception {
+		when(balanceService.getBalance()).thenReturn("Your balance is: 500 USD");
 
-        mockMvc.perform(get("/api/secured/balance")
-                .with(httpBasic("user", "password")))
-                .andExpect(status().isOk());
-    }
+		mockMvc.perform(get("/api/secured/balance").with(httpBasic("user", "password"))).andExpect(status().isOk());
+	}
 
-    @Test
-    void securedEndpointReturns401WithInvalidCredentials() throws Exception {
-        mockMvc.perform(get("/api/secured/balance")
-                .with(httpBasic("user", "wrongpassword")))
-                .andExpect(status().isUnauthorized());
-    }
+	@Test
+	void securedEndpointReturns401WithInvalidCredentials() throws Exception {
+		mockMvc.perform(get("/api/secured/balance").with(httpBasic("user", "wrongpassword")))
+				.andExpect(status().isUnauthorized());
+	}
 
-    @Test
-    void securedEndpointReturns401WithUnknownUser() throws Exception {
-        mockMvc.perform(get("/api/secured/balance")
-                .with(httpBasic("unknown", "password")))
-                .andExpect(status().isUnauthorized());
-    }
+	@Test
+	void securedEndpointReturns401WithUnknownUser() throws Exception {
+		mockMvc.perform(get("/api/secured/balance").with(httpBasic("unknown", "password")))
+				.andExpect(status().isUnauthorized());
+	}
 
-    @Test
-    void passwordEncoderIsBCrypt() {
-        assertThat(passwordEncoder).isInstanceOf(BCryptPasswordEncoder.class);
-    }
+	@Test
+	void passwordEncoderIsBCrypt() {
+		assertThat(passwordEncoder).isInstanceOf(BCryptPasswordEncoder.class);
+	}
 
-    @Test
-    void passwordEncoderMatchesRawPassword() {
-        String raw = "password";
-        String encoded = passwordEncoder.encode(raw);
+	@Test
+	void passwordEncoderMatchesRawPassword() {
+		String raw = "password";
+		String encoded = passwordEncoder.encode(raw);
 
-        assertThat(passwordEncoder.matches(raw, encoded)).isTrue();
-    }
+		assertThat(passwordEncoder.matches(raw, encoded)).isTrue();
+	}
 
-    @Test
-    void passwordEncoderDoesNotMatchWrongPassword() {
-        String encoded = passwordEncoder.encode("password");
+	@Test
+	void passwordEncoderDoesNotMatchWrongPassword() {
+		String encoded = passwordEncoder.encode("password");
 
-        assertThat(passwordEncoder.matches("wrongpassword", encoded)).isFalse();
-    }
+		assertThat(passwordEncoder.matches("wrongpassword", encoded)).isFalse();
+	}
 
 }

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Package name="~com\.example\.msbaseprj\.entity(\..*)?" />
+        <Bug code="EI" />
+    </Match>
+    <Match>
+        <Package name="~com\.example\.msbaseprj\.entity(\..*)?" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.configuration.client.ClientProperties" />
+        <Bug code="EI" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.configuration.client.ClientProperties" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.configuration.client.RestClientConfig" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.order.service.OrderEventSerializer" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.payment.PaymentChargeGatewayClient" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.error.ErrorInfo" />
+        <Bug code="EI" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.error.ErrorInfo" />
+        <Bug code="EI2" />
+    </Match>
+</FindBugsFilter>

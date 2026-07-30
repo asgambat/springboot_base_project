@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run tests
+        run: ./mvnw test
+      - name: Run quality checks
+        run: ./mvnw verify -Pquality
+      - name: Build Docker image
+        run: docker build --tag ms-base-prj:${{ github.sha }} .
+
+  testcontainers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run Testcontainers integration tests
+        run: ./mvnw -Dtest.excludedGroups= -Dgroups=testcontainers test

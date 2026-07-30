@@ -7,16 +7,16 @@ import org.springframework.core.Ordered;
 
 @Configuration
 public class FilterConfig {
-    
-    @Bean
-    public FilterRegistrationBean<LoggingFilter> loggingFilterRegistration() {
-        var registrationBean = new FilterRegistrationBean<LoggingFilter>();
 
-        registrationBean.setFilter(new LoggingFilter());
-        registrationBean.addUrlPatterns("/api/*"); 
-        registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE); 
-        
-        return registrationBean;
-    }
+	@Bean
+	public FilterRegistrationBean<LoggingFilter> loggingFilterRegistration() {
+		var registrationBean = new FilterRegistrationBean<LoggingFilter>();
+
+		registrationBean.setFilter(new LoggingFilter());
+		registrationBean.addUrlPatterns("/api/*");
+		registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+
+		return registrationBean;
+	}
 
 }

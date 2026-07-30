@@ -8,16 +8,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 @Component
 public class OrderMetrics {
 
-    private final Counter processedOrders;
+	private final Counter processedOrders;
 
-    public OrderMetrics(MeterRegistry registry) {
-        this.processedOrders = Counter.builder("orders.processed")
-                .description("Total orders successfully processed")
-                .register(registry);
-    }
+	public OrderMetrics(MeterRegistry registry) {
+		this.processedOrders = Counter.builder("orders.process.started")
+				.description("Total orders successfully started").register(registry);
+	}
 
-    public void increment() {
-        processedOrders.increment();
-    }
-    
+	public void increment() {
+		processedOrders.increment();
+	}
+
 }

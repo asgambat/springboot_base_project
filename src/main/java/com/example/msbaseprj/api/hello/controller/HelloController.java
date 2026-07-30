@@ -11,16 +11,15 @@ import com.example.msbaseprj.api.hello.service.IHelloService;
 @RestController
 @RequestMapping("/api/hello")
 public class HelloController {
-    private final IHelloService helloService;
-    
-    public HelloController(IHelloService helloService) {
-        this.helloService = helloService;
-    }
+	private final IHelloService helloService;
 
-    @GetMapping
-    public HelloResponse hello(
-            @RequestParam(value = "name", defaultValue = "World") String name) {
-        return new HelloResponse(helloService.hello(name));
-    }
+	public HelloController(IHelloService helloService) {
+		this.helloService = helloService;
+	}
+
+	@GetMapping
+	public HelloResponse hello(@RequestParam(value = "name", defaultValue = "World") String name) {
+		return new HelloResponse(helloService.hello(name));
+	}
 
 }

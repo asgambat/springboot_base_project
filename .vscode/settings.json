@@ -1,6 +1,9 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
     "java.configuration.updateBuildConfiguration": "automatic",
+    "github.copilot.enable": {
+        "*": false
+    },
     "java.jdt.ls.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.2.10-hotspot",
     "chat.tools.terminal.autoApprove": {
         "Remove-Item": true,

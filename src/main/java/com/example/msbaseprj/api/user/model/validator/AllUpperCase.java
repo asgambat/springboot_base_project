@@ -8,11 +8,11 @@ import java.lang.annotation.Target;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
-@Target({ ElementType.FIELD })
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = UpperCaseValidator.class)
 public @interface AllUpperCase {
-    String message() default "Must be all upper case";
-    Class<?>[] groups() default {};
-    Class<? extends Payload>[] payload() default {};
+	String message() default "Must be all upper case";
+	Class<?>[] groups() default {};
+	Class<? extends Payload>[] payload() default {};
 }

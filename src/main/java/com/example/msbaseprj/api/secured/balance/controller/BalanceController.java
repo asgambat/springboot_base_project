@@ -10,16 +10,16 @@ import com.example.msbaseprj.aspect.Auditable;
 @RestController
 @RequestMapping("/api/secured")
 public class BalanceController {
-    private final BalanceService balanceService;
+	private final BalanceService balanceService;
 
-    public BalanceController(BalanceService balanceService) {
-        this.balanceService = balanceService;
-    }
+	public BalanceController(BalanceService balanceService) {
+		this.balanceService = balanceService;
+	}
 
-    @GetMapping("/balance")
-    @Auditable(action = "Check balance")
-    public String balance() {
-        return balanceService.getBalance();
-    }
-    
+	@GetMapping("/balance")
+	@Auditable(action = "Check balance")
+	public String balance() {
+		return balanceService.getBalance();
+	}
+
 }
