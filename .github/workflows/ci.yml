@@ -16,6 +16,11 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+      - name: Restore Dependency-Check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-nvd-${{ runner.os }}-12.1.0
       - name: Run tests
         run: ./mvnw test
       - name: Run quality checks
