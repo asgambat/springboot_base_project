@@ -1,4 +1,4 @@
-ALTER TABLE orders ALTER COLUMN amount DECIMAL(14, 2);
+ALTER TABLE orders ALTER COLUMN amount SET DATA TYPE DECIMAL(14, 2);
 
 ALTER TABLE payment_idempotency
     ADD COLUMN processing_lease_until TIMESTAMP WITH TIME ZONE;
