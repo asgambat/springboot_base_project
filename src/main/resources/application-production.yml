@@ -5,6 +5,10 @@ spring:
         jwt:
           issuer-uri: ${OAUTH2_ISSUER_URI}
 
+springdoc:
+  swagger-ui:
+    enabled: false
+
 management:
   endpoints:
     web:

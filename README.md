@@ -139,6 +139,10 @@ L'outbox persiste l'evento nella stessa transazione dell'ordine, lo acquisisce c
 
 Una risposta HTTP non `2xx` fa fallire la consegna e attiva il retry; dopo cinque tentativi l'evento viene spostato nella dead-letter persistente. Il consumer webhook deve trattare `Idempotency-Key` come chiave di deduplicazione.
 
+Il profilo `demo` carica anche un utente Flyway per provare l'outbox: `demo-outbox@example.test`. Dopo l'avvio, recuperarne l'ID con `GET /api/user?email=demo-outbox@example.test` e usarlo in `POST /api/orders`.
+
+Nel profilo `demo` il publisher webhook e attivo e invia al receiver interno `POST /api/demo/webhook/events`, che risponde `204 No Content`. Per usare un consumer esterno, impostare `OUTBOX_WEBHOOK_BASE_URL`; per disabilitare il publisher, impostare `OUTBOX_WEBHOOK_ENABLED=false`.
+
 ## Osservabilita
 
 Actuator e esposto sulla porta management:

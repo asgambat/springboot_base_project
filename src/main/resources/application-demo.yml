@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
   security:
     user:
       name: ${DEMO_USER:user}
@@ -8,3 +10,7 @@ app:
   security:
     api-key: ${API_KEY:demo-api-key}
     session-timeout-in-minutes: ${SESSION_TIMEOUT_IN_MINUTES:60}
+  outbox:
+    webhook:
+      enabled: ${OUTBOX_WEBHOOK_ENABLED:true}
+      base-url: ${OUTBOX_WEBHOOK_BASE_URL:http://localhost:8080/api/demo/webhook}
