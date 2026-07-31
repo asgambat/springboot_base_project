@@ -3,5 +3,8 @@ global:
 scrape_configs:
   - job_name: ms-base-prj
     metrics_path: /actuator/prometheus
+    basic_auth:
+      username: user
+      password: password
     static_configs:
       - targets: ["host.docker.internal:8081"]

@@ -25,7 +25,9 @@ public class WebSecurityConfig {
 		http.csrf(csrf -> csrf.disable()).httpBasic(Customizer.withDefaults()) // enabling Basic Auth
 
 				.authorizeHttpRequests(requests -> requests.requestMatchers("/api/secured/**").authenticated()
-						.requestMatchers("/payments/**").authenticated().requestMatchers("/", "/api/**").permitAll()
+						.requestMatchers("/payments/**").authenticated()
+						.requestMatchers("/", "/api/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+						.permitAll()
 						.anyRequest().authenticated());
 
 		return http.build();
