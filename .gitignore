@@ -1,4 +1,8 @@
 .env
+
+# Maven build output
+target/
+
 # Compiled class file
 *.class
 
