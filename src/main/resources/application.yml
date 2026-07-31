@@ -95,9 +95,6 @@ management:
     enabled: ${MANAGEMENT_TRACING_ENABLED:true}
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.2}
-  otlp:
-    tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:}
   endpoints:
     web:
       exposure:

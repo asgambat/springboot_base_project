@@ -286,3 +286,87 @@ Per applicare automaticamente la formattazione prima del commit:
 ```bash
 ./mvnw -Pquality spotless:apply
 ```
+
+## TEST Manuale
+
+```
+LOG_LEVEL_BASE=DEBUG SPRING_PROFILES_ACTIVE=demo MANAGEMENT_OTLP_TRACING_ENDPOINT=http://localhost:4318/v1/traces MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0 ./mvnw spring-boot:run
+
+curl -u user:password "http://localhost:8080/api/hello?name=Linux" (fallisce 30% delle chiamate, randomicamente, per test)
+curl -sS -u user:password  http://localhost:8081/actuator/prometheus 
+curl -sG -u user:password 'http://localhost:9090/api/v1/query' --data-urlencode 'query=up{job="ms-base-prj"}'
+curl -sG -u user:password 'http://localhost:9090/api/v1/query' --data-urlencode 'query=up{job="ms-base-prj"}' | jq -r '.data.result[0].value[1]'  (deve dare 1)
+curl -sG -u user:password  http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job == "ms-base-prj") | {health, lastError}'
+
+curl -sS -u user:password http://localhost:8081/actuator/health (da randomicamente DOWN)
+curl -sS -u user:password http://localhost:8081/actuator/health/liveness (deve dare sempre UP)
+curl -sS -u user:password http://localhost:8081/actuator/health/readiness (deve dare sempre UP)
+```
+
+aprire Prometheus: http://<ip>:9090/targets 
+	Il target ms-base-prj deve risultare UP.
+
+aprire Grafana: http://<ip>:3000	
+	Accesso iniziale admin / admin; cambia la password.
+	In Grafana, Explore → Tempo, cerca le trace generate dalla chiamata HTTP.
+
+```	
+http://<ip>:8080/v3/api-docs (mostra swagger)
+
+http://<ip>:8080/swagger-ui/index.html (mostra gui swagger)
+```
+
+### Outbox Demo
+
+```
+H2_CONSOLE_ENABLED=true SPRING_PROFILES_ACTIVE=demo OUTBOX_POLL_INTERVAL_MS=1000 ./mvnw spring-boot:run
+```
+
+recupera userId
+```
+USER_ID=$(curl -s 'http://localhost:8080/api/user?email=demo-outbox@example.test' | jq -r '.id')
+echo "$USER_ID"
+```
+
+crea ordine
+```
+curl -i -X POST http://localhost:8080/api/orders -H 'Content-Type: application/json' -d "{\"userId\":$USER_ID,\"amount\":19.99}"
+```
+
+dopo 1 secondo verifica pubblicazione:
+```
+curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:published' | jq '.measurements'
+```
+
+verifica che l'ordine sia stato acquisito:
+
+```
+curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:claimed' | jq '.measurements'
+```
+
+dead-lettered deve essere 0
+```
+	curl -s -u user:password http://localhost:8081/actuator/metrics/outbox.events.dead-lettered | jq '.measurements'
+```
+
+apri http://<ip>:8080/h2-console ed esegui:
+
+```
+SELECT id, event_type, attempt_count, dead_lettered_at, last_error
+FROM outbox_events
+WHERE dead_lettered_at IS NOT NULL;
+```
+
+per verificare consegna a dead-letter avviare l'app con un url non raggiungibile:
+
+```
+H2_CONSOLE_ENABLED=true OUTBOX_WEBHOOK_BASE_URL=http://localhost:9999 SPRING_PROFILES_ACTIVE=demo ./mvnw spring-boot:run
+```
+
+ed inviare ordine, quando claimed arriva a 5 dead letter arriva a 1
+
+```
+curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:claimed' | jq '.measurements'
+
+curl -s -u user:password http://localhost:8081/actuator/metrics/outbox.events.dead-lettered | jq '.measurements'
+```
