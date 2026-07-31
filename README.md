@@ -266,3 +266,19 @@ Per eseguire solo la suite pagamenti:
 ## Script di supporto
 
 Sono disponibili script in `scripts/bat` e `scripts/sh` per build, run, live reload, smoke test e test. Gli script richiedono una variabile `JDK_PATH` nel loro file `.env`; impostare un percorso al JDK 25. Per flussi CI o per evitare ambiguita sul percorso di esecuzione, preferire i comandi Maven Wrapper riportati sopra dalla root del repository.
+
+## Hook Git
+
+Il repository include un hook `pre-commit` che esegue Spotless. Se applica modifiche, il commit viene bloccato affinche le modifiche siano revisionate e aggiunte esplicitamente allo stage. Git non condivide automaticamente la configurazione degli hook tra cloni: ogni sviluppatore deve abilitarla una volta dalla root del repository.
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Il comando funziona sia in Git Bash su Windows sia su Linux/macOS. L'hook usa `./mvnw`, quindi richiede un JDK 25 configurato in `JAVA_HOME` o disponibile nel `PATH`.
+
+Per applicare automaticamente la formattazione prima del commit:
+
+```bash
+./mvnw -Pquality spotless:apply
+```

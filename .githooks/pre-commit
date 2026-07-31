@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+repository_root=$(git rev-parse --show-toplevel)
+cd "$repository_root"
+
+before_format=$(git diff -- .)
+
+echo "Applico formattazione Spotless..."
+./mvnw -q -Pquality spotless:apply
+
+after_format=$(git diff -- .)
+if [ "$before_format" != "$after_format" ]; then
+	echo "Spotless ha modificato file: revisiona le modifiche e aggiungile allo stage prima di riprovare." >&2
+	exit 1
+fi
