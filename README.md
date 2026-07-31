@@ -48,7 +48,7 @@ L'API applicativa e disponibile su `http://localhost:8080`; gli endpoint di mana
 
 ## Profili
 
-- `demo` (default): H2 in memoria e Basic Auth con credenziali configurabili tramite `DEMO_USER` e `DEMO_PASSWORD`.
+- `demo` (default): H2 in memoria, Basic Auth configurabile tramite `DEMO_USER` e `DEMO_PASSWORD`, dataset Flyway e receiver webhook interno per provare l'outbox.
 - `production`: OAuth2 Resource Server con JWT, CORS esplicito e accesso Actuator protetto dallo scope `actuator.read`.
 - `dev`: abilita DevTools, logging Hibernate dettagliato e sampling tracing al 100%.
 
@@ -88,8 +88,8 @@ Le proprieta sono in `src/main/resources/application.yml` e possono essere sovra
 | `MANAGEMENT_OTLP_TRACING_ENDPOINT` | Endpoint OTLP per le trace | Per il Collector locale usare `http://localhost:4318/v1/traces`. |
 | `OUTBOX_POLL_INTERVAL_MS` | Frequenza polling outbox | Default `1000`. |
 | `OUTBOX_ASYNC_DEMO_ENABLED` | Abilita demo `CompletableFuture` | Default `false`; non influenza la consegna outbox. |
-| `OUTBOX_WEBHOOK_ENABLED` | Abilita il publisher webhook dell'outbox | Default `false`. |
-| `OUTBOX_WEBHOOK_BASE_URL` | Base URL del consumer webhook | Richiesta quando il webhook e abilitato. |
+| `OUTBOX_WEBHOOK_ENABLED` | Abilita il publisher webhook dell'outbox | Default base `false`; nel profilo `demo` e `true`. |
+| `OUTBOX_WEBHOOK_BASE_URL` | Base URL del consumer webhook | Nel profilo `demo` usa il receiver interno; negli altri profili e richiesta quando il webhook e abilitato. |
 
 Le opzioni Hikari, Hibernate e del client HTTP sono configurabili con le rispettive variabili esposte nel file YAML.
 
@@ -116,12 +116,12 @@ Idempotency-Key: payment-0001
 Content-Type: application/json
 
 {
-	"cardNumber": "4111111111111111",
-	"cardHolder": "Mario Rossi",
-	"expirationDate": "12/30",
-	"cvv": "123",
-	"amount": 19.99,
-	"currency": "EUR"
+  "cardNumber": "4111111111111111",
+  "cardHolder": "Mario Rossi",
+  "expirationDate": "12/30",
+  "cvv": "123",
+  "amount": 19.99,
+  "currency": "EUR"
 }
 ```
 
@@ -196,14 +196,18 @@ Servizi locali:
 | Tempo | `http://localhost:3200` | Backend trace, provisionato come datasource Grafana. |
 | OTel Collector | `localhost:4317` / `localhost:4318` | Riceve trace OTLP gRPC/HTTP e le inoltra a Tempo. |
 
+Su Docker Engine Linux, `compose.yaml` configura `host.docker.internal:host-gateway` per permettere a Prometheus di raggiungere Actuator sull'host. Prometheus non richiede Basic Auth sulla porta `9090`; Actuator richiede invece le credenziali del profilo attivo.
+
 Arrestare e rimuovere i container con `docker compose down`.
 
 ## Contratto API
 
-Il contratto OpenAPI e generato automaticamente da Springdoc durante l'avvio:
+Il contratto OpenAPI JSON e generato automaticamente da Springdoc durante l'avvio:
 
 - JSON: `http://localhost:8080/v3/api-docs`
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`, disponibile nel profilo `demo`.
+
+Nel profilo `production` la Swagger UI e disabilitata; il contratto JSON resta soggetto alle regole di sicurezza del profilo attivo.
 
 ## Qualita e container
 
@@ -211,6 +215,10 @@ Il build standard applica Maven Enforcer e richiede Java 25. I quality gate aggi
 
 ```powershell
 .\mvnw.cmd verify -Pquality
+```
+
+```bash
+./mvnw verify -Pquality
 ```
 
 Il profilo esegue Spotless, SpotBugs e OWASP Dependency-Check. SpotBugs usa un filtro mirato per le associazioni gestite da JPA e per oggetti Spring iniettati; le collezioni esposte dai DTO pubblici usano invece copie difensive. Costruire ed eseguire l'immagine multi-stage:
@@ -287,86 +295,130 @@ Per applicare automaticamente la formattazione prima del commit:
 ./mvnw -Pquality spotless:apply
 ```
 
-## TEST Manuale
+## Test Manuali
 
-```
-LOG_LEVEL_BASE=DEBUG SPRING_PROFILES_ACTIVE=demo MANAGEMENT_OTLP_TRACING_ENDPOINT=http://localhost:4318/v1/traces MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0 ./mvnw spring-boot:run
+I comandi seguenti usano Bash, `curl` e `jq`. Su PowerShell impostare le stesse variabili con `$env:NOME_VARIABILE = 'valore'` e usare `curl.exe` se l'alias `curl` e associato a un altro comando.
 
-curl -u user:password "http://localhost:8080/api/hello?name=Linux" (fallisce 30% delle chiamate, randomicamente, per test)
-curl -sS -u user:password  http://localhost:8081/actuator/prometheus 
-curl -sG -u user:password 'http://localhost:9090/api/v1/query' --data-urlencode 'query=up{job="ms-base-prj"}'
-curl -sG -u user:password 'http://localhost:9090/api/v1/query' --data-urlencode 'query=up{job="ms-base-prj"}' | jq -r '.data.result[0].value[1]'  (deve dare 1)
-curl -sG -u user:password  http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job == "ms-base-prj") | {health, lastError}'
+### Verifica Osservabilita
 
-curl -sS -u user:password http://localhost:8081/actuator/health (da randomicamente DOWN)
-curl -sS -u user:password http://localhost:8081/actuator/health/liveness (deve dare sempre UP)
-curl -sS -u user:password http://localhost:8081/actuator/health/readiness (deve dare sempre UP)
+Avviare lo stack dalla root del repository:
+
+```bash
+docker compose up -d
 ```
 
-aprire Prometheus: http://<ip>:9090/targets 
-	Il target ms-base-prj deve risultare UP.
+In un altro terminale avviare l'applicazione con trace campionate al 100%:
 
-aprire Grafana: http://<ip>:3000	
-	Accesso iniziale admin / admin; cambia la password.
-	In Grafana, Explore → Tempo, cerca le trace generate dalla chiamata HTTP.
-
-```	
-http://<ip>:8080/v3/api-docs (mostra swagger)
-
-http://<ip>:8080/swagger-ui/index.html (mostra gui swagger)
+```bash
+LOG_LEVEL_BASE=DEBUG \
+SPRING_PROFILES_ACTIVE=demo \
+MANAGEMENT_OTLP_TRACING_ENDPOINT=http://localhost:4318/v1/traces \
+MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0 \
+./mvnw spring-boot:run
 ```
+
+Generare traffico applicativo:
+
+```bash
+curl -sS "http://localhost:8080/api/hello?name=Linux"
+```
+
+`/api/hello` contiene una failure casuale per scopi dimostrativi e puo restituire `500` circa nel 30% delle chiamate.
+
+Verificare Actuator con Basic Auth del profilo demo:
+
+```bash
+curl -sS -u user:password http://localhost:8081/actuator/prometheus
+curl -sS -u user:password http://localhost:8081/actuator/health | jq -r '.status'
+curl -sS -u user:password http://localhost:8081/actuator/health/liveness | jq -r '.status'
+curl -sS -u user:password http://localhost:8081/actuator/health/readiness | jq -r '.status'
+```
+
+L'health aggregato puo risultare `DOWN` per l'indicatore demo della dipendenza esterna; liveness e readiness devono restare `UP`.
+
+Verificare che Prometheus riesca a fare scrape dell'endpoint metriche:
+
+```bash
+curl -sG http://localhost:9090/api/v1/query \
+  --data-urlencode 'query=up{job="ms-base-prj"}' |
+jq -r '.data.result[0].value[1]'
+
+curl -s http://localhost:9090/api/v1/targets |
+jq '.data.activeTargets[] | select(.labels.job == "ms-base-prj") | {health, lastError}'
+```
+
+Il primo comando deve stampare `1`; questo indica la riuscita dello scrape, non lo stato dell'health aggregato. Aprire Prometheus in `http://localhost:9090/targets`, Grafana in `http://localhost:3000` con credenziali iniziali `admin` / `admin`, quindi cercare le trace in **Explore -> Tempo**. Cambiare la password Grafana al primo accesso.
+
+### OpenAPI
+
+```text
+http://localhost:8080/v3/api-docs
+http://localhost:8080/swagger-ui/index.html
+```
+
+Il primo URL restituisce il documento OpenAPI JSON; il secondo apre Swagger UI nel profilo demo.
 
 ### Outbox Demo
 
-```
-H2_CONSOLE_ENABLED=true SPRING_PROFILES_ACTIVE=demo OUTBOX_POLL_INTERVAL_MS=1000 ./mvnw spring-boot:run
+Il profilo demo invia gli eventi al receiver webhook interno. Avviare l'applicazione:
+
+```bash
+SPRING_PROFILES_ACTIVE=demo OUTBOX_POLL_INTERVAL_MS=1000 ./mvnw spring-boot:run
 ```
 
-recupera userId
-```
+Recuperare l'utente seed e creare un ordine:
+
+```bash
 USER_ID=$(curl -s 'http://localhost:8080/api/user?email=demo-outbox@example.test' | jq -r '.id')
-echo "$USER_ID"
+
+curl -i -X POST http://localhost:8080/api/orders \
+  -H 'Content-Type: application/json' \
+  -d "{\"userId\":$USER_ID,\"amount\":19.99}"
 ```
 
-crea ordine
-```
-curl -i -X POST http://localhost:8080/api/orders -H 'Content-Type: application/json' -d "{\"userId\":$USER_ID,\"amount\":19.99}"
+Dopo circa un secondo verificare l'acquisizione e la consegna:
+
+```bash
+curl -s -u user:password \
+  'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:claimed' |
+jq '.measurements'
+
+curl -s -u user:password \
+  'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:published' |
+jq '.measurements'
 ```
 
-dopo 1 secondo verifica pubblicazione:
-```
-curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:published' | jq '.measurements'
+I contatori sono cumulativi per l'intero processo: confrontare il loro valore prima e dopo il test. Nei log deve comparire la ricezione dal webhook demo.
+
+Per simulare un consumer irraggiungibile e verificare retry/dead-letter, riavviare l'app con:
+
+```bash
+H2_CONSOLE_ENABLED=true \
+OUTBOX_WEBHOOK_BASE_URL=http://localhost:9999 \
+SPRING_PROFILES_ACTIVE=demo \
+./mvnw spring-boot:run
 ```
 
-verifica che l'ordine sia stato acquisito:
+Creare nuovamente un ordine. Dopo cinque fallimenti, verificare il contatore e gli eventi dead-letter:
 
-```
-curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:claimed' | jq '.measurements'
-```
-
-dead-lettered deve essere 0
-```
-	curl -s -u user:password http://localhost:8081/actuator/metrics/outbox.events.dead-lettered | jq '.measurements'
+```bash
+curl -s -u user:password \
+  http://localhost:8081/actuator/metrics/outbox.events.dead-lettered |
+jq '.measurements'
 ```
 
-apri http://<ip>:8080/h2-console ed esegui:
+Con la console H2 abilitata, aprire `http://localhost:8080/h2-console` e interrogare:
 
-```
+```sql
 SELECT id, event_type, attempt_count, dead_lettered_at, last_error
 FROM outbox_events
 WHERE dead_lettered_at IS NOT NULL;
 ```
 
-per verificare consegna a dead-letter avviare l'app con un url non raggiungibile:
+### Cleanup
 
-```
-H2_CONSOLE_ENABLED=true OUTBOX_WEBHOOK_BASE_URL=http://localhost:9999 SPRING_PROFILES_ACTIVE=demo ./mvnw spring-boot:run
-```
+L'H2 del profilo demo e in memoria: arrestare l'app azzera i dati del test. Per fermare lo stack osservabilita:
 
-ed inviare ordine, quando claimed arriva a 5 dead letter arriva a 1
-
-```
-curl -s -u user:password 'http://localhost:8081/actuator/metrics/outbox.events?tag=outcome:claimed' | jq '.measurements'
-
-curl -s -u user:password http://localhost:8081/actuator/metrics/outbox.events.dead-lettered | jq '.measurements'
+```bash
+docker compose down
 ```
