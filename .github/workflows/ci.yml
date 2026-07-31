@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,19 +20,81 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+      - name: Determine Dependency-Check cache period
+        id: dependency-check-cache-period
+        run: echo "week=$(date +%G-W%V)" >> "$GITHUB_OUTPUT"
       - name: Restore Dependency-Check data
-        uses: actions/cache@v4
+        id: dependency-check-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check
-          key: dependency-check-nvd-${{ runner.os }}-12.1.0
+          key: dependency-check-nvd-${{ runner.os }}-12.1.0-${{ steps.dependency-check-cache-period.outputs.week }}
+          restore-keys: |
+            dependency-check-nvd-${{ runner.os }}-12.1.0-
       - name: Run tests
         run: ./mvnw test
       - name: Run quality checks
-        run: ./mvnw verify -Pquality
+        run: ./mvnw verify -Pquality -DskipTests
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      - name: Save Dependency-Check data
+        if: always() && steps.dependency-check-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-nvd-${{ runner.os }}-12.1.0-${{ steps.dependency-check-cache-period.outputs.week }}
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            target/surefire-reports/
+            target/dependency-check-report.*
+            target/spotbugsXml.xml
+            target/classes/META-INF/sbom/application.cdx.json
+          if-no-files-found: warn
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Build Docker image
-        run: docker build --tag ms-base-prj:${{ github.sha }} .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ms-base-prj:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          build-mode: autobuild
+      - name: Build for CodeQL
+        uses: github/codeql-action/autobuild@v3
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@v3
 
   testcontainers:
     runs-on: ubuntu-latest
@@ -43,3 +109,10 @@ jobs:
           cache: maven
       - name: Run Testcontainers integration tests
         run: ./mvnw -Dtest.excludedGroups= -Dgroups=testcontainers test
+      - name: Upload Testcontainers reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testcontainers-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
