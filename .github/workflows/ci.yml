@@ -20,6 +20,8 @@ jobs:
         run: ./mvnw test
       - name: Run quality checks
         run: ./mvnw verify -Pquality
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
       - name: Build Docker image
         run: docker build --tag ms-base-prj:${{ github.sha }} .
 
