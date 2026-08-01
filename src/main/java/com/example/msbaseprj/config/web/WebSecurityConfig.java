@@ -14,6 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 @Configuration
 @EnableWebSecurity
@@ -23,6 +24,14 @@ public class WebSecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable()).httpBasic(Customizer.withDefaults()) // enabling Basic Auth
+
+				.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())
+						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+						.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+						// Swagger UI needs inline styles/scripts, so the demo CSP is intentionally
+						// permissive
+						.contentSecurityPolicy(csp -> csp.policyDirectives(
+								"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'")))
 
 				.authorizeHttpRequests(requests -> requests.requestMatchers("/api/secured/**").authenticated()
 						.requestMatchers("/payments/**").authenticated()

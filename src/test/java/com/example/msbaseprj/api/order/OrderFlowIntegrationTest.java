@@ -59,6 +59,18 @@ class OrderFlowIntegrationTest {
 	}
 
 	@Test
+	void populatesAuditingFieldsWhenOrderIsCreated() throws Exception {
+		mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"userId\":%d,\"amount\":19.99}".formatted(userId))).andExpect(status().isOk());
+
+		var order = orderRepository.findAll().getFirst();
+		assertThat(order.getCreatedAt()).isNotNull();
+		assertThat(order.getUpdatedAt()).isNotNull();
+		assertThat(order.getCreatedBy()).isEqualTo("system");
+		assertThat(order.getLastModifiedBy()).isEqualTo("system");
+	}
+
+	@Test
 	void rejectsInvalidOrderBeforePersistingAnything() throws Exception {
 		mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"userId\":%d,\"amount\":-0.01}".formatted(userId))).andExpect(status().isBadRequest());

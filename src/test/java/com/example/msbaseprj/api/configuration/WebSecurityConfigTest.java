@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -83,6 +84,16 @@ class WebSecurityConfigTest {
 		String encoded = passwordEncoder.encode("password");
 
 		assertThat(passwordEncoder.matches("wrongpassword", encoded)).isFalse();
+	}
+
+	@Test
+	void publicResponseCarriesSecurityHeaders() throws Exception {
+		when(helloService.hello("World")).thenReturn("Hello, World!");
+
+		mockMvc.perform(get("/api/hello")).andExpect(status().isOk())
+				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
+				.andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"))
+				.andExpect(header().exists("Content-Security-Policy"));
 	}
 
 }

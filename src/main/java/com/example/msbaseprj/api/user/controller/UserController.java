@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.msbaseprj.api.user.mapper.UserMapper;
 import com.example.msbaseprj.api.user.model.UserDto;
 import com.example.msbaseprj.api.user.model.UserIdResponse;
 import com.example.msbaseprj.repository.UserRepository;
@@ -21,9 +22,11 @@ import jakarta.validation.constraints.Min;
 @RequestMapping("/api/user")
 public class UserController {
 	private final UserRepository userRepository;
+	private final UserMapper userMapper;
 
-	public UserController(UserRepository userRepository) {
+	public UserController(UserRepository userRepository, UserMapper userMapper) {
 		this.userRepository = userRepository;
+		this.userMapper = userMapper;
 	}
 
 	@PostMapping
@@ -37,8 +40,8 @@ public class UserController {
 	}
 
 	@GetMapping("/{id}")
-	public UserDto getUser(@PathVariable @Min(1) Long id) {
-		return new UserDto("User" + id, "user" + id + "@example.com");
+	public ResponseEntity<UserDto> getUser(@PathVariable @Min(1) Long id) {
+		return ResponseEntity.of(userRepository.findById(id).map(userMapper::toDto));
 	}
 
 }

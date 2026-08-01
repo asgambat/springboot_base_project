@@ -25,6 +25,14 @@
         <Bug code="EI2" />
     </Match>
     <Match>
+        <Class name="com.example.msbaseprj.config.web.RateLimitInterceptor" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
+        <Class name="com.example.msbaseprj.api.order.messaging.RabbitMqOutboxPublisher" />
+        <Bug code="EI2" />
+    </Match>
+    <Match>
         <Class name="com.example.msbaseprj.api.payment.PaymentChargeGatewayClient" />
         <Bug code="EI2" />
     </Match>

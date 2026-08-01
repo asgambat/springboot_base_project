@@ -1,5 +1,6 @@
 package com.example.msbaseprj.api.secured.balance.service;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -10,6 +11,7 @@ public class BalanceService {
 		this.balanceMetric = balanceMetric;
 	}
 
+	@PreAuthorize("isAuthenticated()")
 	public String getBalance() {
 		balanceMetric.getBalanceRetrievalTimer().record(() -> {
 			try {

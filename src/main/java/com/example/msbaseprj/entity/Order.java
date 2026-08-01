@@ -1,11 +1,19 @@
 package com.example.msbaseprj.entity;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "orders")
+@EntityListeners(AuditingEntityListener.class)
 public class Order {
 
 	@Id
@@ -21,6 +29,22 @@ public class Order {
 
 	@Column(precision = 14, scale = 2)
 	private BigDecimal amount;
+
+	@CreatedDate
+	@Column(name = "created_at", updatable = false)
+	private Instant createdAt;
+
+	@LastModifiedDate
+	@Column(name = "updated_at")
+	private Instant updatedAt;
+
+	@CreatedBy
+	@Column(name = "created_by", updatable = false, length = 100)
+	private String createdBy;
+
+	@LastModifiedBy
+	@Column(name = "last_modified_by", length = 100)
+	private String lastModifiedBy;
 
 	public Order() {
 	}
@@ -47,6 +71,22 @@ public class Order {
 
 	public void setAmount(BigDecimal amount) {
 		this.amount = amount;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public String getLastModifiedBy() {
+		return lastModifiedBy;
 	}
 
 }

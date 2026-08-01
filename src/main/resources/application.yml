@@ -5,6 +5,11 @@ spring:
     default: demo
   application:
     name: ms-base-prj
+  threads:
+    virtual:
+      enabled: ${THREADS_VIRTUAL_ENABLED:true}   # Java 21+/25: one virtual thread per request instead of a bounded platform-thread pool
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT_PER_PHASE:20s}   # Upper bound for draining in-flight work during graceful shutdown
   devtools:
     restart:
       # DevTools: restart automatico al cambio del codice
@@ -65,6 +70,12 @@ spring:
   transaction:
     default-timeout: ${TRANSACTION_DEFAULT_TIMEOUT:30} #seconds
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:WARN}
@@ -77,6 +88,7 @@ logging:
 
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: graceful   # Stop accepting new requests and let in-flight ones finish (bounded by spring.lifecycle.timeout-per-shutdown-phase)
   tomcat:
     threads:
       max: ${SERVER_TOMCAT_MAX_THREADS:200}          # Maximum worker threads
@@ -121,6 +133,8 @@ management:
       enabled: true #/actuator/health/liveness → JVM sanity (memory, threads, etc.)
     readinessState:
       enabled: true #/actuator/health/readiness → Dependency health (DB, Kafka, Redis, etc.)
+    rabbit:
+      enabled: ${MANAGEMENT_HEALTH_RABBIT_ENABLED:false}   # AMQP on classpath but broker used only under the 'rabbitmq' profile; avoid probing it otherwise
 
 resilience4j:
   circuitbreaker:
@@ -177,6 +191,10 @@ sentry:
   enabled: ${SENTRY_ENABLED:false}
 
 app:
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    capacity: ${RATE_LIMIT_CAPACITY:20}            # Max burst of requests per client before throttling
+    refill-period: ${RATE_LIMIT_REFILL_PERIOD:PT1M}  # ISO-8601 window over which the full capacity is refilled
   payment:
     idempotency-processing-lease: ${PAYMENT_IDEMPOTENCY_PROCESSING_LEASE:PT5M}
   outbox:
@@ -186,6 +204,9 @@ app:
     webhook:
       enabled: ${OUTBOX_WEBHOOK_ENABLED:false}
       base-url: ${OUTBOX_WEBHOOK_BASE_URL:}
+    rabbitmq:
+      exchange: ${OUTBOX_RABBITMQ_EXCHANGE:outbox.events}
+      queue: ${OUTBOX_RABBITMQ_QUEUE:outbox.events.demo}
 
   external-api:
     api:

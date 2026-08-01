@@ -1,0 +1,19 @@
+# Avvia solo RabbitMQ per provare manualmente il profilo 'rabbitmq'.
+#   docker compose -f compose-rabbitmq.yaml up -d
+# Poi avvia l'app con: --spring.profiles.active=demo,rabbitmq
+# Management UI: http://localhost:15672 (guest/guest)
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: ms-base-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

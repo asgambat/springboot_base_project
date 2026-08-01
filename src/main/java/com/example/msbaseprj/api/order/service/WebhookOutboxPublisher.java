@@ -5,6 +5,7 @@ import java.util.concurrent.Executor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClient;
@@ -15,6 +16,7 @@ import com.example.msbaseprj.repository.OutboxEventRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 
 @Component
+@Profile("!rabbitmq")
 @ConditionalOnProperty(prefix = "app.outbox.webhook", name = "enabled", havingValue = "true")
 public class WebhookOutboxPublisher extends OutboxPublisher {
 	private final RestClient webhookClient;

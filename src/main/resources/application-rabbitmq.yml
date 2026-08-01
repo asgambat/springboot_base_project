@@ -1,0 +1,19 @@
+# Profilo che instrada l'outbox verso RabbitMQ (producer + consumer end-to-end).
+# Attivare con --spring.profiles.active=demo,rabbitmq (demo fornisce i dati e il flusso ordini).
+# Sotto questo profilo il publisher webhook e' disattivato: il publisher RabbitMQ e' l'unico attivo.
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+management:
+  health:
+    rabbit:
+      enabled: ${MANAGEMENT_HEALTH_RABBIT_ENABLED:true}   # broker is a real dependency under this profile
+
+app:
+  outbox:
+    webhook:
+      enabled: false   # mutual exclusion: only the RabbitMQ publisher delivers outbox events here
